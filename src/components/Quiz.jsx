@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Question from "./Question.jsx";
+import Timer from "./Timer.jsx";
 import localforage from "localforage";
 import { useNavigate } from "react-router-dom";
-import "./Quiz.css"; 
-
-const Timer = () => <div className="timer">Time: 00:00</div>;
+import "./Quiz.css";
 
 const quizData = [
   { id: 1, question: "Which planet is closest to the Sun?", options: ["Venus", "Mercury", "Earth", "Mars"], answer: "Mercury" },
@@ -24,17 +23,18 @@ function Quiz({ setScore, setAttempts }) {
   const [quizAttempts, setQuizAttempts] = useState([]);
   const [userScore, setUserScore] = useState(0);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     localforage.getItem("quizAttempts").then((data) => {
-      if (data) {
-        setQuizAttempts(data);
-      }
+      if (data) setQuizAttempts(data);
     });
   }, []);
 
   const handleAnswer = (answer) => {
     const isCorrect = answer === quizData[currentQuestion].answer;
     setSelectedAnswer(isCorrect ? "✅ Correct!" : "❌ Wrong!");
+
     setUserScore((prev) => (isCorrect ? prev + 1 : prev));
 
     setTimeout(() => {
@@ -43,32 +43,45 @@ function Quiz({ setScore, setAttempts }) {
         setSelectedAnswer(null);
       } else {
         setQuizCompleted(true);
-
-        const finalScore = userScore + (isCorrect ? 1 : 0);
-        const attempt = { user: userName, score: finalScore, date: new Date().toLocaleString() };
-
-        setQuizAttempts((prevAttempts) => {
-          const updatedAttempts = [...prevAttempts, attempt];
-          const uniqueAttempts = updatedAttempts.filter(
-            (attempt, index, self) => index === self.findIndex((a) => a.date === attempt.date)
-          );
-
-          uniqueAttempts.sort((a, b) => new Date(b.date) - new Date(a.date));
-          localforage.setItem("quizAttempts", uniqueAttempts);
-          return uniqueAttempts;
-        });
-
-        setAttempts((prevAttempts) => {
-          if (!prevAttempts.some((a) => a.date === attempt.date)) {
-            return [...prevAttempts, attempt];
-          }
-          return prevAttempts;
-        });
+        saveAttempt(userScore + (isCorrect ? 1 : 0));
       }
     }, 1000);
   };
 
-  const navigate = useNavigate();
+  const saveAttempt = (finalScore) => {
+    const attempt = { user: userName, score: finalScore, date: new Date().toLocaleString() };
+
+    setQuizAttempts((prevAttempts) => {
+      const updatedAttempts = [...prevAttempts, attempt];
+      const uniqueAttempts = updatedAttempts.filter(
+        (attempt, index, self) => index === self.findIndex((a) => a.date === attempt.date)
+      );
+      uniqueAttempts.sort((a, b) => new Date(b.date) - new Date(a.date));
+      localforage.setItem("quizAttempts", uniqueAttempts);
+      return uniqueAttempts;
+    });
+
+    setAttempts((prevAttempts) => {
+      if (!prevAttempts.some((a) => a.date === attempt.date)) {
+        return [...prevAttempts, attempt];
+      }
+      return prevAttempts;
+    });
+  };
+
+  const handleTimeUp = () => {
+    setSelectedAnswer("⏳ Time's up!");
+
+    setTimeout(() => {
+      if (currentQuestion < quizData.length - 1) {
+        setCurrentQuestion((prev) => prev + 1);
+        setSelectedAnswer(null);
+      } else {
+        setQuizCompleted(true);
+        saveAttempt(userScore);
+      }
+    }, 1000);
+  };
 
   const handleRestart = () => {
     setCurrentQuestion(0);
@@ -76,14 +89,17 @@ function Quiz({ setScore, setAttempts }) {
     setQuizCompleted(false);
     setUserScore(0);
     setScore(0);
-  
-    navigate("/"); 
+    navigate("/");
   };
 
   const handleClearHistory = () => {
     setQuizAttempts([]);
     setAttempts([]);
     localforage.removeItem("quizAttempts");
+  };
+
+  const handleOptionFocus = () => {
+    setSelectedAnswer(null);
   };
 
   return (
@@ -123,8 +139,8 @@ function Quiz({ setScore, setAttempts }) {
         ) : (
           <>
             <h3>❓ Question {currentQuestion + 1}</h3>
-            <Timer />
-            <Question data={quizData[currentQuestion]} onAnswer={handleAnswer} />
+            <Timer onTimeUp={handleTimeUp} />
+            <Question data={quizData[currentQuestion]} onAnswer={handleAnswer} onOptionFocus={handleOptionFocus} />
             <p className="feedback">{selectedAnswer}</p>
           </>
         )}

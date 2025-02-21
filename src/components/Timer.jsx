@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 function Timer({ onTimeUp }) {
-  const [time, setTime] = useState(10);
+  const [time, setTime] = useState(15);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -18,7 +18,7 @@ function Timer({ onTimeUp }) {
     return () => clearInterval(timer);
   }, []);
 
-  return <p>Time Left: {time}s</p>;
+  return <p className="timer">⏳ Time Left: {time}s</p>;
 }
 
 export default Timer;

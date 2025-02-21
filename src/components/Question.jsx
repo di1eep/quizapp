@@ -1,12 +1,22 @@
 import React from "react";
 
-function Question({ data, onAnswer }) {
+function Question({ data, onAnswer, onOptionFocus }) {
   return (
-    <div>
+    <div className="question-container">
       <h4>{data.question}</h4>
-      {data.options.map((option, index) => (
-        <button key={index} onClick={() => onAnswer(option)}>{option}</button>
-      ))}
+      <div className="options">
+        {data.options.map((option, index) => (
+          <button
+            key={index}
+            className="option-btn"
+            onClick={() => onAnswer(option)}
+            onFocus={onOptionFocus}  
+            onMouseEnter={onOptionFocus} 
+          >
+            {option}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
